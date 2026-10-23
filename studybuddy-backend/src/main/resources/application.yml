@@ -1,0 +1,59 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  application:
+    name: studybuddy
+  # 数据源配置（实验一：配置数据源）
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/studybuddy?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${DB_PASSWORD:}
+  sql:
+    init:
+      mode: never
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+# MyBatis（实验一）
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.zjnu.studybuddy.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+#业务自定义配置
+studybuddy:
+  jwt:
+    secret: ${JWT_SECRET:studybuddy-jwt-secret-key-20243190415-fangye-change-me-in-production}
+    expire-minutes: 120
+    header: Authorization
+    prefix: "Bearer "
+  cors:
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173
+  ai:
+    # 大模型服务地址（OpenAI 兼容协议）。切换服务商只需改这里 + LLM_MODEL：
+    #   DeepSeek 官方：https://api.deepseek.com
+    #   阿里云百炼：  https://dashscope.aliyuncs.com/compatible-mode/v1
+    base-url: ${LLM_BASE_URL:https://api.deepseek.com}
+    # API Key 只从环境变量注入，禁止硬编码进仓库：
+    # 本地写到 studybuddy/.env.local（已 gitignore），由启动脚本自动加载。
+    api-key: ${LLM_API_KEY:}
+    # 模型名须与服务商匹配：DeepSeek 官方为 deepseek-flash / deepseek-chat 等
+    model: ${LLM_MODEL:deepseek-flash}
+    timeout-seconds: 60
+    # RAG 知识库文件（classpath 下）
+    knowledge-file: classpath:kb/course-faq.txt
+    top-k: 3
+
+logging:
+  level:
+    root: info
+    com.zjnu.studybuddy: debug

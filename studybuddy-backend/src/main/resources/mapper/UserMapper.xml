@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zjnu.studybuddy.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.zjnu.studybuddy.entity.User">
+        <id     column="id"          property="id"/>
+        <result column="username"    property="username"/>
+        <result column="password"    property="password"/>
+        <result column="nickname"    property="nickname"/>
+        <result column="email"       property="email"/>
+        <result column="phone"       property="phone"/>
+        <result column="avatar"      property="avatar"/>
+        <result column="gender"      property="gender"/>
+        <result column="status"      property="status"/>
+        <result column="remark"      property="remark"/>
+        <result column="deleted"     property="deleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, username, password, nickname, email, phone, avatar,
+        gender, status, remark, deleted, create_time, update_time
+    </sql>
+
+    <!-- 条件查询的公共 where 片段：复用，避免重复 -->
+    <sql id="Query_Where">
+        <where>
+            deleted = 0
+            <if test="q.keyword != null and q.keyword != ''">
+                AND (username LIKE CONCAT('%', #{q.keyword}, '%')
+                     OR nickname LIKE CONCAT('%', #{q.keyword}, '%')
+                     OR email LIKE CONCAT('%', #{q.keyword}, '%'))
+            </if>
+            <if test="q.status != null">
+                AND status = #{q.status}
+            </if>
+        </where>
+    </sql>
+
+    <!-- 分页查询 -->
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_user
+        <include refid="Query_Where"/>
+        ORDER BY id DESC
+        LIMIT #{q.pageSize} OFFSET #{q.offset}
+    </select>
+
+    <!-- 统计总数 -->
+    <select id="countByQuery" resultType="long">
+        SELECT COUNT(*)
+        FROM t_user
+        <include refid="Query_Where"/>
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_user
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByUsername" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_user
+        WHERE username = #{username} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="countByUsername" resultType="int">
+        SELECT COUNT(*) FROM t_user WHERE username = #{username} AND deleted = 0
+    </select>
+
+    <!-- 新增：useGeneratedKeys 回填自增主键 -->
+    <insert id="insert" parameterType="com.zjnu.studybuddy.entity.User"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_user
+            (username, password, nickname, email, phone, avatar,
+             gender, status, remark, deleted, create_time, update_time)
+        VALUES
+            (#{username}, #{password}, #{nickname}, #{email}, #{phone}, #{avatar},
+             #{gender}, #{status}, #{remark}, 0, NOW(), NOW())
+    </insert>
+
+    <!-- 动态更新：只更新传入的非空字段 -->
+    <update id="updateById" parameterType="com.zjnu.studybuddy.entity.User">
+        UPDATE t_user
+        <set>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="email    != null">email    = #{email},</if>
+            <if test="phone    != null">phone    = #{phone},</if>
+            <if test="avatar   != null">avatar   = #{avatar},</if>
+            <if test="gender   != null">gender   = #{gender},</if>
+            <if test="status   != null">status   = #{status},</if>
+            <if test="remark   != null">remark   = #{remark},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 逻辑删除 -->
+    <update id="deleteById">
+        UPDATE t_user SET deleted = 1, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updatePassword">
+        UPDATE t_user SET password = #{password}, update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <delete id="deleteUserRoles">
+        DELETE FROM t_user_role WHERE user_id = #{userId}
+    </delete>
+
+    <insert id="insertUserRoles">
+        INSERT INTO t_user_role (user_id, role_id) VALUES
+        <foreach collection="roleIds" item="roleId" separator=",">
+            (#{userId}, #{roleId})
+        </foreach>
+    </insert>
+
+    <!-- ===== 以下为数据看板聚合查询（功能增强 #6）===== -->
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_user WHERE deleted = 0
+    </select>
+
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(*) FROM t_user WHERE deleted = 0 AND status = #{status}
+    </select>
+
+    <!--
+      用 LEFT JOIN 而非 INNER JOIN：没有任何用户的角色也要以 0 出现在统计里，
+      否则饼图/柱状图会"凭空少一个分类"。
+      COUNT(u.id) 而非 COUNT(*)：LEFT JOIN 未命中时整行为 NULL，COUNT(*) 会误记 1。
+    -->
+    <select id="countByRole" resultType="com.zjnu.studybuddy.vo.NameCountVO">
+        SELECT r.role_name AS name, COUNT(u.id) AS value
+        FROM t_role r
+        LEFT JOIN t_user_role ur ON ur.role_id = r.id
+        LEFT JOIN t_user u ON u.id = ur.user_id AND u.deleted = 0
+        GROUP BY r.id, r.role_name
+        ORDER BY r.id
+    </select>
+
+</mapper>

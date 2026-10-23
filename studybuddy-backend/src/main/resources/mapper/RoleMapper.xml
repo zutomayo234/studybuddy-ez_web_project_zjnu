@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zjnu.studybuddy.mapper.RoleMapper">
+
+    <resultMap id="RoleResultMap" type="com.zjnu.studybuddy.entity.Role">
+        <id     column="id"          property="id"/>
+        <result column="role_code"   property="roleCode"/>
+        <result column="role_name"   property="roleName"/>
+        <result column="description" property="description"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 用户 -> 用户角色关联 -> 角色 -->
+    <select id="selectRolesByUserId" resultMap="RoleResultMap">
+        SELECT r.id, r.role_code, r.role_name, r.description, r.create_time, r.update_time
+        FROM t_role r
+        INNER JOIN t_user_role ur ON ur.role_id = r.id
+        WHERE ur.user_id = #{userId}
+    </select>
+
+    <select id="selectAll" resultMap="RoleResultMap">
+        SELECT id, role_code, role_name, description, create_time, update_time
+        FROM t_role
+        ORDER BY id
+    </select>
+
+    <select id="selectById" resultMap="RoleResultMap">
+        SELECT id, role_code, role_name, description, create_time, update_time
+        FROM t_role
+        WHERE id = #{id}
+    </select>
+
+    <!-- 角色 -> 角色权限关联 -> 权限（功能增强 #1） -->
+    <select id="selectPermsByRoleId" resultType="com.zjnu.studybuddy.entity.Permission">
+        SELECT p.id, p.perm_code, p.perm_name, p.resource_type, p.description
+        FROM t_permission p
+        INNER JOIN t_role_permission rp ON rp.perm_id = p.id
+        WHERE rp.role_id = #{roleId}
+        ORDER BY p.id
+    </select>
+
+    <delete id="deleteRolePerms">
+        DELETE FROM t_role_permission WHERE role_id = #{roleId}
+    </delete>
+
+    <insert id="insertRolePerms">
+        INSERT INTO t_role_permission (role_id, perm_id) VALUES
+        <foreach collection="permIds" item="permId" separator=",">
+            (#{roleId}, #{permId})
+        </foreach>
+    </insert>
+
+    <select id="countUsersByRoleId" resultType="long">
+        SELECT COUNT(*) FROM t_user_role WHERE role_id = #{roleId}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_role
+    </select>
+
+</mapper>

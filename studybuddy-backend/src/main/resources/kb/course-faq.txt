@@ -1,0 +1,74 @@
+# 学习搭子 StudyBuddy 课程知识库（RAG 语料）
+# 说明：以空行分隔的每条为一次检索的最小片段，首行以 # 开头的行为注释，不参与检索。
+# 维护建议：一个片段只讲清一个小问题，便于检索命中且便于"给出出处"。
+
+课程名称为《团队规范项目实训》，课程编号 00931，面向计算机类相关专业。
+本课程围绕"会做工程、善用 AI、能协作、守底线"四个维度设定实践目标。
+
+后端技术栈推荐使用 Spring Boot 3.x，起步依赖至少包含 spring-boot-starter-web、mybatis-spring-boot-starter 和 mysql-connector-j。
+较老的写法是 SSM（Spring + SpringMVC + MyBatis）+ web.xml 配置，新项目一般不再使用，但理解它有助于认识 MVC 分层。
+
+数据库统一使用 MySQL，本课程实验采用 MySQL 8.x。建表时主键建议使用 BIGINT 自增，时间字段使用 DATETIME 并默认 NOW()。
+字符集建议 utf8mb4，避免中文与 emoji 乱码。
+
+持久层使用 MyBatis。接口写在 Mapper 中，SQL 写在 XML 映射文件里，通过 mapper-locations 指定 classpath:mapper/*.xml。
+开启 map-underscore-to-camel-case 后，数据库的 create_time 会自动映射到 Java 的 createTime 字段。
+
+MVC 分层与职责：Controller 只负责接收请求与返回响应，Service 承载业务逻辑与事务，Mapper 负责数据库访问，Entity 对应表结构。
+Controller 不写 SQL，Mapper 不写业务判断，这样各层职责单一，便于测试与维护。
+
+前后端分离：后端用 @RestController 暴露 RESTful JSON 接口，前端用 Vue.js 调用。跨域问题由后端 CORS 配置或前端代理解决。
+RESTful 风格用 HTTP 动词表达语义：GET 查询、POST 新增、PUT 更新、DELETE 删除，资源路径用复数名词，例如 /api/users。
+
+跨域（CORS）是浏览器的同源策略导致的。前后端端口不同即属跨域，浏览器会先发 OPTIONS 预检请求。
+后端需要在响应头返回 Access-Control-Allow-Origin 等字段。注意：当 allowCredentials 为 true 时，Allowed-Origin 不能用通配符 *。
+
+Git 分支模型建议采用 main / develop / feature 三类分支。功能在 feature/* 上开发，通过 Pull Request 合并，且 PR 至少需要 1 人评审。
+代码评审关注点包括：命名是否清晰、有无重复代码、异常是否处理、是否存在安全风险、是否补充了测试。
+
+持续集成（CI）建议使用 GitHub Actions，在 push 与 pull_request 时自动执行 mvn -B clean verify。
+CI 的作用是"把集成问题提前暴露"，在合并前就跑通编译与测试，避免把坏代码合进主干。
+
+登录鉴权推荐使用 JWT（JSON Web Token）。用户登录成功后服务端签发令牌，后续请求放在 Authorization 请求头中，格式为 Bearer <token>。
+服务端通过过滤器校验签名与过期时间，无状态、适合前后端分离与横向扩展。
+
+密码绝对不能明文存库，必须使用不可逆的哈希算法。本课程使用 BCrypt，它自带随机盐，同一明文每次加密结果都不同。
+校验密码要用 passwordEncoder.matches(明文, 密文)，不能直接比较字符串是否相等。
+
+RBAC 是基于角色的访问控制模型，由三张核心表加两张关联表组成：t_user、t_role、t_permission、t_user_role、t_role_permission。
+用户通过角色间接获得权限，权限编码形如 user:list、user:create、user:delete、ai:chat。
+
+接口级权限控制使用 Spring Security 的 @PreAuthorize 注解，例如 @PreAuthorize("hasAuthority('user:delete')")。
+角色与权限都实现为 GrantedAuthority，hasRole('ADMIN') 要求角色编码以 ROLE_ 前缀存储。
+
+提示工程（Prompt Engineering）的核心是把指令写清楚、可复用。常用结构是「角色设定 + 约束 + 上下文 + 任务 + 输出格式」。
+把提示词集中管理成模板，而不是散落在代码里做字符串拼接，便于迭代与评审。
+
+大模型 API 大多兼容 OpenAI 协议，调用地址为 /chat/completions，请求体包含 model 与 messages 数组。
+messages 中 role 可为 system、user、assistant；system 用于设定角色与边界，user 是用户输入。切换厂商通常只需改 base-url 与 model。
+
+RAG 是检索增强生成（Retrieval-Augmented Generation）。流程是：把文档切块 → 向量化 → 检索最相关片段 → 拼进提示词 → 让模型基于资料作答。
+RAG 能显著降低幻觉，并要求模型"给出出处"。生产环境用向量数据库（如 Milvus、pgvector）加 Embedding 模型实现语义检索。
+
+大模型的局限：可能产生幻觉（编造事实）、知识有截止日期、对长上下文中间内容关注度下降。
+应对方法：限定上下文、要求给出出处、设置"不确定就说不确定"、关键结论人工复核。
+
+提示注入（Prompt Injection）是 AI 应用的一类安全风险：攻击者在用户输入中写入"忽略之前的指令"等内容，试图劫持模型行为。
+防护要点：限制输入长度、关键词黑名单拦截、系统提示声明不得泄露内部信息、输出侧二次过滤，并且关键决策保留人工兜底。
+
+AI 伦理与合规要求：用户数据需脱敏，不上传敏感信息到公网模型；AI 生成代码与文案需确认许可并遵守开源协议。
+AI 产出必须人工验证，关键决策由人负责；产品与文档中应说明 AI 能力边界，不夸大宣传。
+
+AI 辅助开发的使用公约：AI 可用于检索、生成脚手架、写单元测试、润色文案。
+禁止用 AI 代写整模块后不复核；所有 AI 生成的代码需人工逐行理解，关键决策（架构、安全）必须人工拍板。
+
+实验一的目标是搭建 Web 基础项目：用 Maven 创建工程，配置数据源，完成用户表的增删改查，并用内嵌容器或 Tomcat 部署运行。
+验证方式是执行 mvn spring-boot:run 启动，通过接口对用户表完成新增、查询、修改、删除。
+
+实验二的目标是前后端分离与 RESTful API：后端提供 JSON 接口，前端 Vue 组件通过 Axios 调用，解决跨域，分别构建部署并联调。
+
+实验三的目标是 Git 协作开发与持续集成：分支管理、Pull Request、代码评审、基础 CI。
+
+实验四的目标是登录、权限与 AI 安全：实现登录与基于角色的访问控制，签发 JWT，同步建立安全意识。
+
+实验五的目标是 LLM 应用开发与智能功能原型：调用大模型 API 实现智能问答，理解提示工程与 RAG 入门，并把智能功能接入项目。

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zjnu.studybuddy.mapper.ChatMessageMapper">
+
+    <resultMap id="MessageResultMap" type="com.zjnu.studybuddy.entity.ChatMessage">
+        <id     column="id"          property="id"/>
+        <result column="session_id"  property="sessionId"/>
+        <result column="role"        property="role"/>
+        <result column="content"     property="content"/>
+        <result column="ref_excerpt" property="refExcerpt"/>
+        <result column="fallback"    property="fallback"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, session_id, role, content, ref_excerpt, fallback, create_time
+    </sql>
+
+    <insert id="insert" parameterType="com.zjnu.studybuddy.entity.ChatMessage"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_chat_message (session_id, role, content, ref_excerpt, fallback, create_time)
+        VALUES (#{sessionId}, #{role}, #{content}, #{refExcerpt}, #{fallback}, NOW())
+    </insert>
+
+    <select id="selectBySessionId" resultMap="MessageResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_chat_message
+        WHERE session_id = #{sessionId}
+        ORDER BY id ASC
+    </select>
+
+    <!--
+      先按 id 倒序取最近 limit 条，再在外层按 id 正序排回去，
+      这样模型拿到的上下文是"由旧到新"的自然顺序。
+    -->
+    <select id="selectRecentBySession" resultMap="MessageResultMap">
+        SELECT * FROM (
+            SELECT <include refid="Base_Column_List"/>
+            FROM t_chat_message
+            WHERE session_id = #{sessionId}
+            ORDER BY id DESC
+            LIMIT #{limit}
+        ) t
+        ORDER BY t.id ASC
+    </select>
+
+    <select id="countBySessionId" resultType="long">
+        SELECT COUNT(*) FROM t_chat_message WHERE session_id = #{sessionId}
+    </select>
+
+    <delete id="deleteBySessionId">
+        DELETE FROM t_chat_message WHERE session_id = #{sessionId}
+    </delete>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_chat_message
+    </select>
+
+</mapper>

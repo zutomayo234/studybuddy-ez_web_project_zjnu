@@ -1,0 +1,45 @@
+# ---------- Java / Maven ----------
+target/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---------- 前端 Node ----------
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- IDE ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+
+# VS Code 插件自动生成的缓存（非项目内容）
+**/.github/modernize/
+
+# ---------- 操作系统 ----------
+.DS_Store
+Thumbs.db
+
+# ---------- 关键：绝不提交密钥与本地配置 ----------
+# 本地覆盖配置（放数据库密码、大模型 Key 等）
+application-local.yml
+application-local.yaml
+*.env
+.env.local
+
+# 日志与临时文件
+logs/
+*.log
+
+# ---------- 报告生成产物（由 docs/gen_reports.py 生成，与源码分开提交）----------
+docs/实验报告/

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zjnu.studybuddy.mapper.OperationLogMapper">
+
+    <resultMap id="LogResultMap" type="com.zjnu.studybuddy.entity.OperationLog">
+        <id     column="id"          property="id"/>
+        <result column="user_id"     property="userId"/>
+        <result column="username"    property="username"/>
+        <result column="module"      property="module"/>
+        <result column="action"      property="action"/>
+        <result column="http_method" property="httpMethod"/>
+        <result column="uri"         property="uri"/>
+        <result column="ip"          property="ip"/>
+        <result column="success"     property="success"/>
+        <result column="cost_ms"     property="costMs"/>
+        <result column="detail"      property="detail"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.zjnu.studybuddy.entity.OperationLog"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_operation_log
+            (user_id, username, module, action, http_method, uri, ip, success, cost_ms, detail, create_time)
+        VALUES
+            (#{userId}, #{username}, #{module}, #{action}, #{httpMethod}, #{uri}, #{ip},
+             #{success}, #{costMs}, #{detail}, NOW())
+    </insert>
+
+    <sql id="Query_Where">
+        <where>
+            <if test="q.module != null and q.module != ''">
+                AND module = #{q.module}
+            </if>
+            <if test="q.username != null and q.username != ''">
+                AND username LIKE CONCAT('%', #{q.username}, '%')
+            </if>
+            <if test="q.action != null and q.action != ''">
+                AND action LIKE CONCAT('%', #{q.action}, '%')
+            </if>
+            <if test="q.success != null">
+                AND success = #{q.success}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectPage" resultMap="LogResultMap">
+        SELECT id, user_id, username, module, action, http_method, uri, ip,
+               success, cost_ms, detail, create_time
+        FROM t_operation_log
+        <include refid="Query_Where"/>
+        ORDER BY id DESC
+        LIMIT #{q.pageSize} OFFSET #{q.offset}
+    </select>
+
+    <select id="countByQuery" resultType="long">
+        SELECT COUNT(*) FROM t_operation_log
+        <include refid="Query_Where"/>
+    </select>
+
+    <select id="countFailed" resultType="long">
+        SELECT COUNT(*) FROM t_operation_log WHERE success = 0
+    </select>
+
+</mapper>

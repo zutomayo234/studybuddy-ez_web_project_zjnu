@@ -1,0 +1,61 @@
+name: CI
+
+# 实验三：基础持续集成流水线
+# 触发时机：推送到 main / develop，或向它们发起 Pull Request
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-build:
+    name: 后端编译与测试
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: studybuddy-backend
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Maven 编译 + 单元测试
+        # -B 批处理模式；verify 会执行 test 阶段，测试不通过则流水线失败
+        run: mvn -B clean verify
+
+      - name: 上传构建产物（可运行的 jar）
+        uses: actions/upload-artifact@v4
+        with:
+          name: studybuddy-backend-jar
+          path: studybuddy-backend/target/*.jar
+          if-no-files-found: warn
+
+  frontend-build:
+    name: 前端构建
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: studybuddy-frontend
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: studybuddy-frontend/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 生产构建
+        run: npm run build
